@@ -17,8 +17,9 @@ class NeuroBase():
     def _initializeWeights(self, inD):
         '''
         weight and inputs is associated by index. for example self._weights[2]
-        is for self._inNums[2]
+        is for self._inputNeuros[2]
         @inD: int. number of inputs.
+        @self._weights : list-like float. weight for each input
         '''
         self._weights = [0 for _i in range(inD)]
 
@@ -27,10 +28,15 @@ class NeuroBase():
         connect with other neuros
         @inputNeuros :list-like NeuroBase. act as inputs.
         @nextNeuros :list-like NeuroBase. act as outputs.
+        @self._accumulativeErrors :list-like numbers. size of list is equal to 
+            size of @inputNeuros. a list whose element is accumulative error 
+            associated with evaluted at inputNeuros 
         '''
         self._inputNeuros = inputNeuros[:]
         self._outputNeuros = outputNeuros[:]
         self._initializeWeights(len(inputNeuros))
+        self._derivatives = [None for _i in range(len(inputNeuros))]
+        self._accumulativeErrors = [None for _i in range(len(inputNeuros))]
 
     def activate(self):
         '''
@@ -38,6 +44,51 @@ class NeuroBase():
         result from the neuro activition is stored in @self._outNum.
         '''
         raise Exception("NeuroBase: activate needs implemention")
+
+    def derivative(self, neuroIndex):
+        '''
+        evaluate partial derivative with respect to weight at index @neuroIndex.
+            df(@self._weights[@neuroIndex])/dw
+        @neuroIndex :int. between range of len(@self._inputNeuro)
+        @x :float.
+        '''
+        raise Exception("NeuroBase: derivative needs implementations")
+
+    def evalAccumulativeError(self):
+        '''
+        evaluate accumulative error for each input Neuros, call this before 
+            calling backprop.
+        self._accumulativeErrors is updated.
+        '''
+        for neuroIndex in range(len(self._inputNeuros)):
+            localPartialDerivative = self.derivative(neuroIndex)
+            accumulativeErrorUpperLayer = 0.0
+            for outputNeuro in self._outputNeuros:
+                accumulativeErrorUpperLayer += outputNeuro.getAccumulativeErrorFor(self)
+            accumulativeErrorI =  accumulativeErrorUpperLayer * localPartialDerivative
+            self._accumulativeErrors[neuroIndex] = accumulativeErrorI
+
+    def getAccumulativeErrorFor(self, inputNeuro):
+        '''
+        get accumulative error for @inputNeuro
+        @inputNeuro :NeuroBase. it must be in @self._inputNeuros
+        @return :float.
+        '''
+        # find corresponding index of the inputNeuro
+        foundInputNeuroIndex = -1
+        for i in range(len(self._inputNeuros)):
+            if (self.equals(inputNeuro)):
+                foundInputNeuroIndex = i
+                break
+        if -1 == foundInputNeuroIndex:
+            raise Exception("inputNeuro is not found")
+        return self._accumulativeErrors[foundInputNeuroIndex]
+
+    def backprop(self):
+        '''
+        compute the cumulative error for each input neuro.
+        '''
+        raise Exception("NeuroBase: backprop needs implementation")
 
     def _getOutNum(self):
         return self._outNum
@@ -55,16 +106,16 @@ class NeuroBase():
         return (inputs, weights)
 
 
-    # def equals(self, neuro):
-    #     '''
-    #     test if self is equal to @neuro by uid.
-    #     @neuro :NeuroBase.
-    #     @return :bool. 
-    #     '''
-    #     if self._uid == neuro._uid:
-    #         return True
-    #     else:
-    #         return False
+    def equals(self, neuro):
+        '''
+        test if self is equal to @neuro by uid.
+        @neuro :NeuroBase.
+        @return :bool. 
+        '''
+        if self._uid == neuro._uid:
+            return True
+        else:
+            return False
 
 
     NeuroNumber = '0'
